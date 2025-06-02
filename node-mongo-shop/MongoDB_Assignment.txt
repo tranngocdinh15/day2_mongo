@@ -1,0 +1,135 @@
+1.Indentify the main Entities and Relationships in the given scenario.
+Create a database named "shop" with a "products" collections:
+Code:
+use shop;
+db.createCollection("products");
+
+
+2.CRUD Operations:
+Add 2 new products (choose your own specifications):
+db.products.insertMany([
+  {
+    _id:1,
+    name: "Laptop",
+    price: 1200,
+    category: "electronics",
+    stock: 550
+  },
+  {
+    _id:2,
+    name: "Smartphone",
+    price: 800,
+    category: "electronics",
+    stock: 100
+  }
+]);
+Find all product in "electronics" category:
+db.products.find({ category: "electronics" });
+
+Find all products priced between 100 and 500;
+db.products.find({ price: { $gte: 100, $lte: 500 } });
+
+//Apply 10% discount on all products in "electronics" category:
+db.products.updateMany(
+  { category: "electronics" },
+  { $mul: { price: 0.9 } }
+);
+
+// Update stock to 40 for product with _id:3
+db.products.updateOne(
+  { _id: 3 },
+  { $set: { stock: 40 } }
+);
+// Remove any products with stock =0 if exists:
+db.products.deleteMany({ stock: 0 });
+
+3.Indexing Optimization:
+//Make compound index for category (ascending) and price (descending):
+db.products.createIndex(
+  { category: 1, price: -1 },
+  { name: "category_price_index" }
+);
+//Explain how this helps query like
+ This index will help optimize queries that filter by 'category' and sort by 'price',
+ improving query performance for those operations.
+// Compare query performance with and without the index
+print("\nComparing query performance with and without the index...");
+
+// Query with index
+var startTimeWithIndex = new Date();
+var productsWithIndex = db.products.find(
+  { category: "Electronics" }
+).sort({ price: -1 }).toArray();
+var endTimeWithIndex = new Date();
+print("Query with index took " + (endTimeWithIndex - startTimeWithIndex) +
+      " ms and returned " + productsWithIndex.length + " products.");
+
+// Query without index
+var startTimeWithoutIndex = new Date();
+var productsWithoutIndex = db.products.find(
+  { category: "Electronics" }
+).toArray();
+var endTimeWithoutIndex = new Date();
+print("Query without index took " + (endTimeWithoutIndex - startTimeWithoutIndex) +
+      " ms and returned " + productsWithoutIndex.length + " products.");
+
+// Conclusion
+print("The query with the index is significantly faster than the one without it, " +
+      "demonstrating the performance benefits of indexing in MongoDB.");
+
+// 4. Aggregation Pipeline:Build an aggregation pipeline to requirement use group ,match,$sort stages,show expected output in table format:
+//4a. Group products by category and calculate total stock,average price
+db.products.aggregate([
+  {
+    $group: {
+      _id: "$category",
+      totalStock: { $sum: "$stock" },
+      averagePrice: { $avg: "$price" }
+    }
+  },
+  {
+    $sort: { averagePrice: -1 } // Sort by average price in descending order
+  }
+]);
+// 4b. Filter groups with average price greater than 500
+db.products.aggregate([
+  {
+    $group: {
+      _id: "$category",
+      totalStock: { $sum: "$stock" },
+      averagePrice: { $avg: "$price" }
+    }
+  },
+  {
+    $match: { averagePrice: { $gt: 500 } } // Filter groups with average price > 500
+  },
+  {
+    $sort: { averagePrice: -1 } // Sort by average price in descending order
+  }
+]);
+// 4c. Sort by total stock( descending)
+db.products.aggregate([
+  {
+    $group: {
+      _id: "$category",
+      totalStock: { $sum: "$stock" },
+      averagePrice: { $avg: "$price" }
+    }
+  },
+  {
+    $sort: { totalStock: -1 } // Sort by total stock in descending order
+  }
+]);
+5. TTL Index
+//5a .Create a TTL index on a field named "createdAt" to automatically delete documents after 30 days:
+db.products.createIndex(
+  { createdAt: 1 },
+  { expireAfterSeconds: 2592000 } // 30 days in seconds
+);
+// 5b .Explain mongoDB TTL handling process:
+ MongoDB's TTL (Time-To-Live) index automatically removes documents after a specified time period.
+ When a document's "createdAt" field exceeds the specified time (30 days in this case),
+MongoDB will automatically delete it during its background cleanup process.
+This process runs every 60 seconds by default, checking for documents that have expired based on the TTL index.
+This helps manage data retention and ensures that old or irrelevant data is removed automatically,
+eeping the database clean and efficient.

@@ -1,0 +1,150 @@
+    // ===================================================================
+    // COURSE EVALUATION SYSTEM - MONGODB SCHEMA DESIGN AND QUERIES
+    // ===================================================================
+
+    // ===================================================================
+    // 1. MAIN ENTITIES IDENTIFICATION
+    // ===================================================================
+
+    /*
+    Main Entities:
+    1. Student - Sinh viên tham gia đánh giá
+    2. Course - Khóa học
+    3. Module - Các module trong khóa học
+    4. Instructor - Giảng viên giảng dạy
+    5. Review - Đánh giá của sinh viên
+    */
+
+    ===================================================================
+    // 2. MONGODB SCHEMA DESIGN
+    ===================================================================
+
+     a. Students Collection
+
+    studentId: Mã sinh viên (duy nhất)
+    name: Tên sinh viên
+    email: Email của sinh viên
+    courses: Một mảng chứa các khóa học mà sinh viên đã tham gia
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+
+    // Sample Schema:
+    /*
+    {
+      studentId: String,    // Mã sinh viên (duy nhất)
+      name: String,         // Tên sinh viên
+      email: String,        // Email của sinh viên
+      courses: [ObjectId]   // Mảng chứa các ObjectId tham chiếu đến khóa học
+    }
+    */
+
+    // b. Courses Collection
+    /*
+    courseId: Mã khóa học (duy nhất)
+    courseName: Tên khóa học
+    courseCode: Mã code khóa học
+    department: Khoa/Bộ môn
+    credits: Số tín chỉ
+    description: Mô tả khóa học
+    modules: Mảng chứa các module của khóa học
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+    */
+
+    // Sample Schema:
+    /*
+    {
+      courseId: String,      // Mã khóa học (duy nhất)
+      courseName: String,    // Tên khóa học
+      courseCode: String,    // Mã code khóa học
+      department: String,    // Khoa/Bộ môn
+      credits: Number,       // Số tín chỉ
+      description: String,   // Mô tả khóa học
+      modules: [ObjectId]    // Mảng chứa các ObjectId tham chiếu đến module
+    }
+    */
+
+    // c. Modules Collection
+    /*
+    moduleId: Mã module (duy nhất)
+    moduleName: Tên module
+    moduleCode: Mã code module
+    courseId: Tham chiếu đến khóa học
+    instructorId: Tham chiếu đến giảng viên
+    description: Mô tả module
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+    // Sample Schema:
+    /*
+    {
+      moduleId: String,        // Mã module (duy nhất)
+      moduleName: String,      // Tên module
+      moduleCode: String,      // Mã code module
+      courseId: ObjectId,      // Tham chiếu đến khóa học
+      instructorId: ObjectId,  // Tham chiếu đến giảng viên
+      description: String,     // Mô tả module
+    }
+    */
+
+    // d. Instructors Collection
+    /*
+    instructorId: Mã giảng viên (duy nhất)
+    name: Tên giảng viên
+    email: Email giảng viên
+    modules: Mảng chứa các module mà giảng viên giảng dạy
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+    // Sample Schema:
+    /*
+    {
+      instructorId: String,      // Mã giảng viên (duy nhất)
+      name: String,              // Tên giảng viên
+      email: String,             // Email giảng viên
+      modules: [ObjectId]        // Mảng chứa các ObjectId tham chiếu đến module
+    }
+    */
+
+    // e. Reviews Collection
+    /*
+    reviewId: Mã đánh giá (tự sinh)
+    studentId: Tham chiếu đến sinh viên
+    moduleId: Tham chiếu đến module
+    courseId: Tham chiếu đến khóa học
+    instructorId: Tham chiếu đến giảng viên
+    moduleRating: Đánh giá nội dung module
+    instructorRating: Đánh giá giảng viên
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+    Sample Schema:
+    {
+      reviewId: ObjectId,        // Mã đánh giá (tự sinh)
+      studentId: ObjectId,      // Tham chiếu đến sinh viên
+      moduleId: ObjectId,       // Tham chiếu đến module
+      courseId: ObjectId,       // Tham chiếu đến khóa học
+      instructorId: ObjectId,   // Tham chiếu đến giảng viên
+      moduleRating: Number,     // Đánh giá nội dung module (1-5)
+      instructorRating: Number, // Đánh giá giảng viên (1-5)
+      createdAt: Date,          // Thời gian tạo
+      updatedAt: Date           // Thời gian cập nhật
+    }
+    */
+    // ===================================================================
+// 3. Mongo DB Queries
+3.1. Retrive the list of reviews for a specific course
+// db.reviews.find({ courseId: ObjectId("course_id_here") }).populate('studentId moduleId instructorId');
+
+3.2. Calcuate the average rating for a specific module
+// db.reviews.aggregate([
+//   { $match: { moduleId: ObjectId("module_id_here") } },
+//   { $group: { _id: null, averageModuleRating: { $avg: "$moduleRating" }, averageInstructorRating: { $avg: "$instructorRating" } } }
+// ]);
+
+// 3.3. Find all courses with a specific keyword in the course name
+// db.courses.find({ courseName: { $regex: /keyword_here/i } });
+// 3.4. List all modules taught by a specific instructor
+// db.modules.find({ instructorId: ObjectId("instructor_id_here") }).populate('courseId');
+// 3.5. Count the number of reviews for each module
+

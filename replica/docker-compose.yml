@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  mongodb1:
+    image: mongo:latest
+    container_name: mongo1
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo1_data:/data/db
+    restart: always
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+  mongodb2:
+    image: mongo:latest
+    container_name: mongo2
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo2_data:/data/db
+    restart: always
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+  mongodb3:
+    image: mongo:latest
+    container_name: mongo3
+    ports:
+      - "27020:27017"
+    volumes:
+      - mongo3_data:/data/db
+    restart: always
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
