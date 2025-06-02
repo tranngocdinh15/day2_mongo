@@ -1,0 +1,542 @@
+    // ===================================================================
+    // COURSE EVALUATION SYSTEM - MONGODB SCHEMA DESIGN AND QUERIES
+    // ===================================================================
+
+    // ===================================================================
+    // 1. MAIN ENTITIES IDENTIFICATION
+    // ===================================================================
+
+    /*
+    Main Entities:
+    1. Student - Sinh viên tham gia đánh giá
+    2. Course - Khóa học
+    3. Module - Các module trong khóa học
+    4. Instructor - Giảng viên giảng dạy
+    5. Review - Đánh giá của sinh viên
+    */
+
+    ===================================================================
+    // 2. MONGODB SCHEMA DESIGN
+    ===================================================================
+
+     a. Students Collection
+
+    studentId: Mã sinh viên (duy nhất)
+    name: Tên sinh viên
+    email: Email của sinh viên
+    courses: Một mảng chứa các khóa học mà sinh viên đã tham gia
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+
+    // Sample Schema:
+    /*
+    {
+      studentId: String,    // Mã sinh viên (duy nhất)
+      name: String,         // Tên sinh viên
+      email: String,        // Email của sinh viên
+      courses: [ObjectId]   // Mảng chứa các ObjectId tham chiếu đến khóa học
+    }
+    */
+
+    // b. Courses Collection
+    /*
+    courseId: Mã khóa học (duy nhất)
+    courseName: Tên khóa học
+    courseCode: Mã code khóa học
+    department: Khoa/Bộ môn
+    credits: Số tín chỉ
+    description: Mô tả khóa học
+    modules: Mảng chứa các module của khóa học
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+    */
+
+    // Sample Schema:
+    /*
+    {
+      courseId: String,      // Mã khóa học (duy nhất)
+      courseName: String,    // Tên khóa học
+      courseCode: String,    // Mã code khóa học
+      department: String,    // Khoa/Bộ môn
+      credits: Number,       // Số tín chỉ
+      description: String,   // Mô tả khóa học
+      modules: [ObjectId]    // Mảng chứa các ObjectId tham chiếu đến module
+    }
+    */
+
+    // c. Modules Collection
+    /*
+    moduleId: Mã module (duy nhất)
+    moduleName: Tên module
+    moduleCode: Mã code module
+    courseId: Tham chiếu đến khóa học
+    instructorId: Tham chiếu đến giảng viên
+    description: Mô tả module
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+    // Sample Schema:
+    /*
+    {
+      moduleId: String,        // Mã module (duy nhất)
+      moduleName: String,      // Tên module
+      moduleCode: String,      // Mã code module
+      courseId: ObjectId,      // Tham chiếu đến khóa học
+      instructorId: ObjectId,  // Tham chiếu đến giảng viên
+      description: String,     // Mô tả module
+    }
+    */
+
+    // d. Instructors Collection
+    /*
+    instructorId: Mã giảng viên (duy nhất)
+    name: Tên giảng viên
+    email: Email giảng viên
+    modules: Mảng chứa các module mà giảng viên giảng dạy
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+
+    // Sample Schema:
+    /*
+    {
+      instructorId: String,      // Mã giảng viên (duy nhất)
+      name: String,              // Tên giảng viên
+      email: String,             // Email giảng viên
+      modules: [ObjectId]        // Mảng chứa các ObjectId tham chiếu đến module
+    }
+    */
+
+    // e. Reviews Collection
+    /*
+    reviewId: Mã đánh giá (tự sinh)
+    studentId: Tham chiếu đến sinh viên
+    moduleId: Tham chiếu đến module
+    courseId: Tham chiếu đến khóa học
+    instructorId: Tham chiếu đến giảng viên
+    moduleRating: Đánh giá nội dung module
+    instructorRating: Đánh giá giảng viên
+    createdAt: Thời gian tạo
+    updatedAt: Thời gian cập nhật
+    Sample Schema:
+    {
+      reviewId: ObjectId,        // Mã đánh giá (tự sinh)
+      studentId: ObjectId,      // Tham chiếu đến sinh viên
+      moduleId: ObjectId,       // Tham chiếu đến module
+      courseId: ObjectId,       // Tham chiếu đến khóa học
+      instructorId: ObjectId,   // Tham chiếu đến giảng viên
+      moduleRating: Number,     // Đánh giá nội dung module (1-5)
+      instructorRating: Number, // Đánh giá giảng viên (1-5)
+      createdAt: Date,          // Thời gian tạo
+      updatedAt: Date           // Thời gian cập nhật
+    }
+    */
+    // ===================================================================
+// 3. Mongo DB Queries
+// ===================================================================
+// UPDATED QUERIES THAT WORK WITH ANY ObjectIds
+// ===================================================================
+
+// 3.1. Get reviews for a specific module (using moduleId string)
+db.reviews.aggregate([
+  {
+    $lookup: {
+      from: "modules",
+      localField: "moduleId",
+      foreignField: "_id",
+      as: "module"
+    }
+  },
+  {
+    $match: {
+      "module.moduleId": "MOD001"  // Using string moduleId instead of ObjectId
+    }
+  },
+  {
+    $lookup: {
+      from: "students",
+      localField: "studentId",
+      foreignField: "_id",
+      as: "student"
+    }
+  },
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "instructorId",
+      foreignField: "_id",
+      as: "instructor"
+    }
+  },
+  {
+    $project: {
+      reviewId: 1,
+      moduleRating: 1,
+      instructorRating: 1,
+      comments: 1,
+      createdAt: 1,
+      "student.name": 1,
+      "student.email": 1,
+      "module.moduleName": 1,
+      "instructor.name": 1
+    }
+  },
+  {
+    $sort: { createdAt: -1 }
+  }
+]);
+
+// 3.2. Calculate average rating for a module (using moduleId string)
+// ===================================================================
+// UPDATED QUERIES THAT WORK WITH ANY ObjectIds
+// ===================================================================
+
+// 3.1. Get reviews for a specific module (using moduleId string)
+db.reviews.aggregate([
+  {
+    $lookup: {
+      from: "modules",
+      localField: "moduleId",
+      foreignField: "_id",
+      as: "module"
+    }
+  },
+  {
+    $match: {
+      "module.moduleId": "MOD001"  // Using string moduleId instead of ObjectId
+    }
+  },
+  {
+    $lookup: {
+      from: "students",
+      localField: "studentId",
+      foreignField: "_id",
+      as: "student"
+    }
+  },
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "instructorId",
+      foreignField: "_id",
+      as: "instructor"
+    }
+  },
+  {
+    $project: {
+      reviewId: 1,
+      moduleRating: 1,
+      instructorRating: 1,
+      comments: 1,
+      createdAt: 1,
+      "student.name": 1,
+      "student.email": 1,
+      "module.moduleName": 1,
+      "instructor.name": 1
+    }
+  },
+  {
+    $sort: { createdAt: -1 }
+  }
+]);
+
+// 3.2. Calculate average rating for a module (using moduleId string)
+db.reviews.aggregate([
+  {
+    $lookup: {
+      from: "modules",
+      localField: "moduleId",
+      foreignField: "_id",
+      as: "module"
+    }
+  },
+  {
+    $match: {
+      "module.moduleId": "MOD001"
+    }
+  },
+  {
+    $group: {
+      _id: "$moduleId",
+      averageModuleRating: { $avg: "$moduleRating" },
+      totalReviews: { $sum: 1 },
+      minRating: { $min: "$moduleRating" },
+      maxRating: { $max: "$moduleRating" }
+    }
+  },
+  {
+    $lookup: {
+      from: "modules",
+      localField: "_id",
+      foreignField: "_id",
+      as: "moduleInfo"
+    }
+  },
+  {
+    $project: {
+      moduleId: "$_id",
+      averageModuleRating: { $round: ["$averageModuleRating", 2] },
+      totalReviews: 1,
+      minRating: 1,
+      maxRating: 1,
+      moduleName: { $arrayElemAt: ["$moduleInfo.moduleName", 0] },
+      moduleCode: { $arrayElemAt: ["$moduleInfo.moduleCode", 0] }
+    }
+  }
+]);
+
+// 3.3. Calculate average rating for an instructor (using instructorId string)
+db.reviews.aggregate([
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "instructorId",
+      foreignField: "_id",
+      as: "instructor"
+    }
+  },
+  {
+    $match: {
+      "instructor.instructorId": "INS001"
+    }
+  },
+  {
+    $group: {
+      _id: "$instructorId",
+      averageInstructorRating: { $avg: "$instructorRating" },
+      averageModuleRating: { $avg: "$moduleRating" },
+      totalReviews: { $sum: 1 },
+      modules: { $addToSet: "$moduleId" }
+    }
+  },
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "_id",
+      foreignField: "_id",
+      as: "instructorInfo"
+    }
+  },
+  {
+    $project: {
+      instructorId: "$_id",
+      averageInstructorRating: { $round: ["$averageInstructorRating", 2] },
+      averageModuleRating: { $round: ["$averageModuleRating", 2] },
+      totalReviews: 1,
+      totalModulesRated: { $size: "$modules" },
+      instructorName: { $arrayElemAt: ["$instructorInfo.name", 0] },
+      instructorEmail: { $arrayElemAt: ["$instructorInfo.email", 0] }
+    }
+  }
+]);
+
+// 3.4. Get highest-rated modules within each course
+db.reviews.aggregate([
+  {
+    $group: {
+      _id: {
+        courseId: "$courseId",
+        moduleId: "$moduleId"
+      },
+      averageModuleRating: { $avg: "$moduleRating" },
+      totalReviews: { $sum: 1 }
+    }
+  },
+  {
+    $lookup: {
+      from: "modules",
+      localField: "_id.moduleId",
+      foreignField: "_id",
+      as: "moduleInfo"
+    }
+  },
+  {
+    $lookup: {
+      from: "courses",
+      localField: "_id.courseId",
+      foreignField: "_id",
+      as: "courseInfo"
+    }
+  },
+  {
+    $project: {
+      courseId: "$_id.courseId",
+      moduleId: "$_id.moduleId",
+      averageModuleRating: { $round: ["$averageModuleRating", 2] },
+      totalReviews: 1,
+      courseName: { $arrayElemAt: ["$courseInfo.courseName", 0] },
+      courseCode: { $arrayElemAt: ["$courseInfo.courseCode", 0] },
+      moduleName: { $arrayElemAt: ["$moduleInfo.moduleName", 0] },
+      moduleCode: { $arrayElemAt: ["$moduleInfo.moduleCode", 0] }
+    }
+  },
+  {
+    $sort: {
+      courseId: 1,
+      averageModuleRating: -1
+    }
+  },
+  {
+    $group: {
+      _id: "$courseId",
+      course: { $first: {
+        courseName: "$courseName",
+        courseCode: "$courseCode"
+      }},
+      highestRatedModule: { $first: {
+        moduleId: "$moduleId",
+        moduleName: "$moduleName",
+        moduleCode: "$moduleCode",
+        averageRating: "$averageModuleRating",
+        totalReviews: "$totalReviews"
+      }},
+      allModules: { $push: {
+        moduleId: "$moduleId",
+        moduleName: "$moduleName",
+        moduleCode: "$moduleCode",
+        averageRating: "$averageModuleRating",
+        totalReviews: "$totalReviews"
+      }}
+    }
+  },
+  {
+    $project: {
+      courseId: "$_id",
+      courseName: "$course.courseName",
+      courseCode: "$course.courseCode",
+      highestRatedModule: 1,
+      allModulesRanked: "$allModules"
+    }
+  },
+  {
+    $sort: { courseId: 1 }
+  }
+]);
+
+// 3.3. Calculate average rating for an instructor (using instructorId string)
+db.reviews.aggregate([
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "instructorId",
+      foreignField: "_id",
+      as: "instructor"
+    }
+  },
+  {
+    $match: {
+      "instructor.instructorId": "INS001"
+    }
+  },
+  {
+    $group: {
+      _id: "$instructorId",
+      averageInstructorRating: { $avg: "$instructorRating" },
+      averageModuleRating: { $avg: "$moduleRating" },
+      totalReviews: { $sum: 1 },
+      modules: { $addToSet: "$moduleId" }
+    }
+  },
+  {
+    $lookup: {
+      from: "instructors",
+      localField: "_id",
+      foreignField: "_id",
+      as: "instructorInfo"
+    }
+  },
+  {
+    $project: {
+      instructorId: "$_id",
+      averageInstructorRating: { $round: ["$averageInstructorRating", 2] },
+      averageModuleRating: { $round: ["$averageModuleRating", 2] },
+      totalReviews: 1,
+      totalModulesRated: { $size: "$modules" },
+      instructorName: { $arrayElemAt: ["$instructorInfo.name", 0] },
+      instructorEmail: { $arrayElemAt: ["$instructorInfo.email", 0] }
+    }
+  }
+]);
+
+// 3.4. Get highest-rated modules within each course
+db.reviews.aggregate([
+  {
+    $group: {
+      _id: {
+        courseId: "$courseId",
+        moduleId: "$moduleId"
+      },
+      averageModuleRating: { $avg: "$moduleRating" },
+      totalReviews: { $sum: 1 }
+    }
+  },
+  {
+    $lookup: {
+      from: "modules",
+      localField: "_id.moduleId",
+      foreignField: "_id",
+      as: "moduleInfo"
+    }
+  },
+  {
+    $lookup: {
+      from: "courses",
+      localField: "_id.courseId",
+      foreignField: "_id",
+      as: "courseInfo"
+    }
+  },
+  {
+    $project: {
+      courseId: "$_id.courseId",
+      moduleId: "$_id.moduleId",
+      averageModuleRating: { $round: ["$averageModuleRating", 2] },
+      totalReviews: 1,
+      courseName: { $arrayElemAt: ["$courseInfo.courseName", 0] },
+      courseCode: { $arrayElemAt: ["$courseInfo.courseCode", 0] },
+      moduleName: { $arrayElemAt: ["$moduleInfo.moduleName", 0] },
+      moduleCode: { $arrayElemAt: ["$moduleInfo.moduleCode", 0] }
+    }
+  },
+  {
+    $sort: {
+      courseId: 1,
+      averageModuleRating: -1
+    }
+  },
+  {
+    $group: {
+      _id: "$courseId",
+      course: { $first: {
+        courseName: "$courseName",
+        courseCode: "$courseCode"
+      }},
+      highestRatedModule: { $first: {
+        moduleId: "$moduleId",
+        moduleName: "$moduleName",
+        moduleCode: "$moduleCode",
+        averageRating: "$averageModuleRating",
+        totalReviews: "$totalReviews"
+      }},
+      allModules: { $push: {
+        moduleId: "$moduleId",
+        moduleName: "$moduleName",
+        moduleCode: "$moduleCode",
+        averageRating: "$averageModuleRating",
+        totalReviews: "$totalReviews"
+      }}
+    }
+  },
+  {
+    $project: {
+      courseId: "$_id",
+      courseName: "$course.courseName",
+      courseCode: "$course.courseCode",
+      highestRatedModule: 1,
+      allModulesRanked: "$allModules"
+    }
+  },
+  {
+    $sort: { courseId: 1 }
+  }
+]);
